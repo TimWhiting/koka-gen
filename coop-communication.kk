@@ -4,18 +4,20 @@
 
 // A task is a prepared computation that runs in the scheduler loop.
 // It has 'div' (loops) and 'local' (updates scheduler state).
-value struct task
-  run : some<h> () -> <console,div,local<h>> ()
+// We parameterize over 'e' to allow arbitrary user effects (like console).
+value struct task<e::E>
+  run : () -> <div|e> ()
 
 // A waiter is a captured continuation expecting an int message.
 // It returns the next task function.
-value struct waiter
-  callback : some<h> (int) -> <console,div,local<h>> (() -> <console,div,local<h>> ())
+value struct waiter<e::E>
+  callback : (int) -> <div|e> (() -> <div|e> ())
 
 // The communication effect.
 // We use 'div effect' to allow recursion.
-div effect comm
-  ctl spawn( action : () -> <comm,console,div> () ) : ()
+// We parameterize over 'e' so that 'spawn' can accept actions with effect 'e'.
+div effect comm<e::E>
+  ctl spawn( action : () -> <comm<e>,div|e> () ) : ()
   ctl yield() : ()
   ctl send( chan : string, v : int ) : ()
   ctl recv( chan : string ) : int
@@ -25,15 +27,15 @@ div effect comm
 // 2. The Scheduler
 // ---------------------------------------------------------
 
-fun schedule( main : () -> <comm,console,div> () ) : <console,div> ()
+fun schedule( main1 : () -> <comm<e>,div|e> () ) : <div|e> ()
   
   // --- Runtime State ---
-  var ready : list<task> := []
+  var ready : some<e,h> list<task<<local<h>|e>>> := []
   var mailboxes : list<(string, list<int>)> := []
-  var waiting : list<(string, list<waiter>)> := []
+  var waiting : some<e,h> list<(string, list<waiter<<local<h>|e>>>)> := []
 
   // --- Helpers ---
-  fun enqueue( t : task )
+  fun enqueue( t : some<e,h> task<<local<h>|e>> )
     ready := ready ++ [t]
 
   fun find-map( l : list<(string, a)>, key : string ) : maybe<a>
@@ -42,7 +44,7 @@ fun schedule( main : () -> <comm,console,div> () ) : <console,div> ()
       Nothing      -> Nothing
 
   // --- The Run Loop ---
-  fun run-loop() : <console,div,local<_>> ()
+  fun run-loop() : _ ()
     match ready
       Nil -> () 
       Cons(current-task, rest) -> 
@@ -51,8 +53,8 @@ fun schedule( main : () -> <comm,console,div> () ) : <console,div> ()
 
   // --- The Handler ---
   // Converts a <comm> action into a task function () -> <div,local> ()
-  fun handle-comm( action : () -> <comm,console,div> () ) : <console,div,local<_>> (() -> <console,div,local<_>> ())
-    handle(action)
+  fun handle-comm(action : () -> <comm<_>,div|_> ()): <div,local<_>|_> (() -> <div,local<_>|_> ())
+    handle({mask<local>(action)})
       return(_) 
         fn(){ run-loop() }
 
@@ -67,8 +69,7 @@ fun schedule( main : () -> <comm,console,div> () ) : <console,div> ()
 
       ctl spawn(child)
         // handle-comm(child) returns the function that starts the child.
-        val child-task = handle-comm(child)
-        enqueue( Task(child-task) )
+        enqueue( Task(fn() handle-comm(child)()) )
         resume(())
 
       ctl send(chan, msg)
@@ -102,7 +103,7 @@ fun schedule( main : () -> <comm,console,div> () ) : <console,div> ()
             fn(){ run-loop() }
 
   // --- Bootstrap ---
-  val main-task = handle-comm(main)
+  val main-task = handle-comm(main1)
   enqueue( Task(main-task) )
   run-loop()
 
@@ -110,7 +111,8 @@ fun schedule( main : () -> <comm,console,div> () ) : <console,div> ()
 // 3. Application Code
 // ---------------------------------------------------------
 
-fun filter-actor( in-ch : string, my-prime : int ) : <comm,console,div> ()
+// Note: We infer the effect 'e' to be 'console' here because we use println.
+fun filter-actor( in-ch : string, my-prime : int ) : <comm<<console>>,console,div> ()
   val out-ch = "ch-" ++ (my-prime + 1).show
   var has-neighbor := False
 
@@ -124,7 +126,7 @@ fun filter-actor( in-ch : string, my-prime : int ) : <comm,console,div> ()
       else
         send(out-ch, n)
 
-fun generator( start-ch : string, limit : int ) : <comm,console,div> ()
+fun generator( start-ch : string, limit : int ) : <comm<<console>>,console,div> ()
   for( 2, limit ) fn(i)
     send(start-ch, i)
     yield() 
