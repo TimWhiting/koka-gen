@@ -11,7 +11,7 @@ value struct task<e::E>
 // A waiter is a captured continuation expecting an int message.
 // It returns the next task function.
 value struct waiter<e::E>
-  callback : (int) -> <div|e> (() -> <div|e> ())
+  callback : (int) -> <div|e> ()
 
 // The communication effect.
 // We use 'div effect' to allow recursion.
@@ -33,7 +33,7 @@ fun schedule( main1 : () -> <comm<e>,div|e> () ) : <div|e> ()
   var ready : some<e,h> list<task<<local<h>|e>>> := []
   var mailboxes : list<(string, list<int>)> := []
   var waiting : some<e,h> list<(string, list<waiter<<local<h>|e>>>)> := []
-
+  var done := False
   // --- Helpers ---
   fun enqueue( t : some<e,h> task<<local<h>|e>> )
     ready := ready ++ [t]
@@ -52,40 +52,38 @@ fun schedule( main1 : () -> <comm<e>,div|e> () ) : <div|e> ()
         current-task.run.()
 
   // --- The Handler ---
-  // Converts a <comm> action into a task function () -> <div,local> ()
-  fun handle-comm(action : () -> <comm<_>,div|_> ()): <div,local<_>|_> (() -> <div,local<_>|_> ())
+  // Converts a <comm> action into a task function
+  fun handle-comm(action)
     handle({mask<local>(action)})
-      return(_) 
-        fn(){ run-loop() }
-
+      return(_) ()
       ctl shutdown()
         ready := []
-        fn(){ () }
-
+        done := True
       ctl yield()
-        val k = resume(()) // k is () -> (() -> ...)
-        enqueue( Task(k) )
-        fn(){ run-loop() }
+        // val k = resume(()) // k is () -> (() -> ...)
+        enqueue( Task(fn() resume(())) )
 
       ctl spawn(child)
-        // handle-comm(child) returns the function that starts the child.
-        enqueue( Task(fn() handle-comm(child)()) )
-        resume(())
-
+        // Defer both child and parent - don't run resume now
+        val child-task = fn() handle-comm(child)
+        val parent-task = fn() { val k = resume(()); k() }
+        enqueue( Task(child-task) )
+        enqueue( Task(parent-task) )
       ctl send(chan, msg)
         val waiters = waiting.find-map(chan).default([])
         match waiters
           Cons(w, w-rest) ->
             waiting := waiting.filter(fn(p) p.fst != chan) ++ [(chan, w-rest)]
             // w.callback(msg) returns the next task function for the waiter
-            val waiter-task = w.callback.(msg)
+            val waiter-task = fn() w.callback.(msg)
             enqueue( Task(waiter-task) )
-            resume(())
+            // Defer sender too - let waiter run first
+            val sender-task = fn() { val k = resume(()); k() }
+            enqueue( Task(sender-task) )
           Nil ->
             val msgs = mailboxes.find-map(chan).default([])
             mailboxes := mailboxes.filter(fn(p) p.fst != chan) ++ [(chan, msgs ++ [msg])]
             resume(())
-
       ctl recv(chan)
         val msgs = mailboxes.find-map(chan).default([])
         match msgs
@@ -100,12 +98,12 @@ fun schedule( main1 : () -> <comm<e>,div|e> () ) : <div|e> ()
             val ws = waiting.find-map(chan).default([])
             waiting := waiting.filter(fn(p) p.fst != chan) ++ [(chan, ws ++ [w])]
             // Block: return run-loop to continue with next task
-            fn(){ run-loop() }
 
   // --- Bootstrap ---
   val main-task = handle-comm(main1)
-  enqueue( Task(main-task) )
-  run-loop()
+  enqueue( Task(fn() main-task()) )
+  while {!done}
+    run-loop()
 
 // ---------------------------------------------------------
 // 3. Application Code
