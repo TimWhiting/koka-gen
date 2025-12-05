@@ -118,6 +118,7 @@ fun main()
   test-send-recv()
   test-send-recv-buffered()
   test-send-recv-polymorphic()
+  test-send-recv-wrong-type()  // What happens with type mismatch?
   test-ping-pong()
   test-custom-effect-logger()
   test-custom-effect-exception()
@@ -217,6 +218,20 @@ fun test-send-recv-polymorphic()
       val t1 : (int, string) = recv("tuple-ch")
       val t2 : (int, string) = recv("tuple-ch")
       println("Tuples: " ++ t1.show ++ ", " ++ t2.show)
+      shutdown()
+
+// ---------------------------------------------------------
+// Test: send/recv with WRONG type - demonstrates unsafety!
+// ---------------------------------------------------------
+fun test-send-recv-wrong-type()
+  println("\n--- Test: send/recv WRONG TYPE ---")
+  schedule fn()
+    // Send a string
+    send("mixed-ch", "hello")
+    spawn fn()
+      // But try to receive as int - TYPE MISMATCH!
+      val x : int = recv("mixed-ch")
+      println("Got int: " ++ x.show)
       shutdown()
 
 // ---------------------------------------------------------
