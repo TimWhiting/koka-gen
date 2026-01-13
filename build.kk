@@ -1,3 +1,4 @@
+import std/num/random
 // ---------------------------------------------------------
 // 1. The Build Effect
 // ---------------------------------------------------------
@@ -228,3 +229,8 @@ fun main()
     // Clear cache by starting a fresh 'make' call
     val res = make("fib-5", my-makefile2)
     println("[Result] fib-5 = " ++ res)
+  
+fun analyze-main()
+  main()
+fun result-main()
+  ()
