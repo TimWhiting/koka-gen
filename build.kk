@@ -79,13 +79,14 @@ fun make( target : string, rules : rule-book ) : <exn,console,div> string
 // ---------------------------------------------------------
 
 // Separate handler for Exceptions, as requested.
-fun run-safe( action : () -> <exn,console|e> a ) : <console|e> ()
+fun run-safe( action : () -> <exn,console|e> a) : <console|e> either<string,a>
   with handler
-    return(x) ()
+    return(x) Right(x)
     // Catch the exception and print it nicely
     final ctl throw-exn(msg) 
       println("\n!!! BUILD FAILED !!!")
       println("Error: " ++ msg.show)
+      Left(msg.message)
   action()
 
 // ---------------------------------------------------------
@@ -124,7 +125,23 @@ fun my-makefile( key : string ) : <build,exn> string
     "cycle-B" -> need("cycle-A")
 
     _ -> throw("No rule to build target: " ++ key)
-
+fun analyze-mymakefile-example1()
+  run-safe
+    val result = make("main.exe", my-makefile)
+    println("\n[Result] " ++ result)
+    result
+fun result-mymakefile-example1()
+  Right("BINARY(OBJECT(int helper() { ... })+OBJECT(int main() { ... }))")
+fun analyze-mymakefile-example2()
+  run-safe
+    make("cycle-A", my-makefile)
+fun result-mymakefile-example2()
+  Left("Circular dependency detected: cycle-B -> cycle-A -> cycle-A")
+fun analyze-mymakefile-example3()
+  run-safe
+    make("missing.lib", my-makefile)
+fun result-mymakefile-example3()
+  Left("No rule to build target: missing.lib")
 
 fun my-makefile2( key : string ) : <build,exn> string
   match key
@@ -177,6 +194,20 @@ fun my-makefile2( key : string ) : <build,exn> string
             (v1 + v2).show
 
     _ -> throw("No rule for: " ++ key)
+fun analyze-mymakefile-example4()
+  run-safe
+    val res = make("app.pkg", my-makefile2)
+    println("\n[Result] " ++ res)
+    res
+fun result-mymakefile-example4()
+  Right("PACKAGE(RELEASE, LIB(Opt))")
+fun analyze-mymakefile-example5()
+  run-safe
+    val res = make("fib-1", my-makefile2)
+    println("\n[Result] fib-1 = " ++ res)
+    res
+fun result-mymakefile-example5()
+  Right("1")
 
 // ---------------------------------------------------------
 // 5. Execution
@@ -230,7 +261,7 @@ fun main()
     val res = make("fib-5", my-makefile2)
     println("[Result] fib-5 = " ++ res)
   
-fun analyze-main()
-  main()
-fun result-main()
-  ()
+// fun analyze-main()
+//   main()
+// fun result-main()
+//   ()
