@@ -177,6 +177,36 @@ fun appendo( l : term, s : term, out : term ) : <div,logic> ()
     }
   ])
 
+// ---------------------------------------------------------
+// 7. Benchmarking
+// ---------------------------------------------------------
+
+fun analyze-q1()
+  val runner1 = solve fn()
+    val q = fresh()
+    val l1 = to-logic-list([1])
+    val l2 = to-logic-list([2])
+    appendo(l1, l2, q)
+    q
+  val results1 = runner1(empty-state)
+  results1.map( fn(res) "q = " ++ reify(res.fst, res.snd.sub) ).join(", ")
+
+fun result-q1()
+  "q = [1 . [2 . []]]"
+
+fun analyze-q2()
+  val runner2 = solve fn()
+    val x = fresh()
+    val y = fresh()
+    val target = to-logic-list([1, 2, 3])
+    appendo(x, y, target)
+    (x, y)
+  val results2 = runner2(empty-state)
+  results2.map( fn(res) "x = " ++ reify(res.fst.fst, res.snd.sub) ++ ", y = " ++ reify(res.fst.snd, res.snd.sub) ).join("\n")
+
+fun result-q2()
+  "x = [], y = [1 . [2 . [3 . []]]]\nx = [1 . []], y = [2 . [3 . []]]\nx = [1 . [2 . []]], y = [3 . []]\nx = [1 . [2 . [3 . []]]], y = []"
+
 fun main()
   println("--- Koka Micro-Kanren ---")
 

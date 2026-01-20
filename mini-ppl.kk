@@ -132,7 +132,63 @@ fun drunk-walk( steps : int ) : <div,choice> int
     else drunk-walk( steps + 1 )
 
 // ---------------------------------------------------------
-// 5. Main Execution
+// 5. Benchmarking
+// ---------------------------------------------------------
+
+fun analyze-burglar()
+  with pseudo-random(42)
+  exact(burglar-model).show-dist
+
+fun result-burglar()
+  "\nDistribution (Total Mass: 0.0176):\n" ++
+  "  Burglary!: 0.1%\n" ++
+  "  Burglary!: 0.0%\n" ++
+  "  Burglary!: 37.4%\n" ++
+  "  Burglary!: 0.0%\n" ++
+  "  Safe: 2.3%\n" ++
+  "  Safe: 0.1%\n" ++
+  "  Safe: 3.9%\n" ++
+  "  Safe: 56.2%"
+
+fun analyze-drunk()
+  with pseudo-random(42)
+  exact { drunk-walk(0).show }.show-dist
+
+fun result-drunk()
+  "\nDistribution (Total Mass: 1.0000):\n" ++
+  "  0: 50.0%\n" ++
+  "  1: 25.0%\n" ++
+  "  2: 12.5%\n" ++
+  "  3: 6.2%\n" ++
+  "  4: 3.1%\n" ++
+  "  5: 1.6%\n" ++
+  "  6: 0.8%\n" ++
+  "  7: 0.4%\n" ++
+  "  8: 0.2%\n" ++
+  "  9: 0.1%\n" ++
+  "  10: 0.0%\n" ++
+  "  11: 0.0%"
+
+fun analyze-burglar-mc()
+  with pseudo-random(42)
+  var burglary-count := 0
+  var total-valid := 0
+  for(1, 1000) fn(i)
+    val res = sample(burglar-model)
+    match res
+      Nothing -> ()
+      Just(s) -> 
+        total-valid := total-valid + 1
+        if s == "Burglary!" then burglary-count := burglary-count + 1
+  
+  val est = burglary-count.float64 / total-valid.float64
+  "Total Valid: " ++ total-valid.show ++ ", Prob: " ++ (est * 100.0).show(2) ++ "%"
+
+fun result-burglar-mc()
+  "Total Valid: 12, Prob: 41.67%"
+
+// ---------------------------------------------------------
+// 6. Main Execution
 // ---------------------------------------------------------
 
 fun main()
@@ -149,10 +205,10 @@ fun main()
   val d2 = exact { drunk-walk(0).show }
   println( d2.show-dist )
 
-  // 3. Run Monte Carlo Sampling
-  // We run the model 1000 times and count results
-  println("\n[Monte Carlo] Sampling Burglar Model (1000 runs):")
+  // 3. Run Monte Carlo Sampling (Deterministic with Seed 42)
+  println("\n[Monte Carlo] Sampling Burglar Model (1000 runs, Seed 42):")
   
+  with pseudo-random(42)
   var burglary-count := 0
   var total-valid := 0
   

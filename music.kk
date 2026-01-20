@@ -81,7 +81,42 @@ fun search-service( action : () -> <search,music-ops|e> a ) : <music-ops|e> a
       resume(results)
 
 // ---------------------------------------------------------
-// 4. Client Code
+// 4. Benchmarking
+// ---------------------------------------------------------
+
+fun populate-lib() : <music-ops> ()
+  val a1 = add-artist("Queen")
+  val l1 = add-album(a1, "A Night at the Opera")
+  add-song(l1, "Bohemian Rhapsody", 354)
+  add-song(l1, "You're My Best Friend", 172)
+  add-song(l1, "Love of My Life", 219)
+
+  val a2 = add-artist("The Beatles")
+  val l2 = add-album(a2, "Abbey Road")
+  add-song(l2, "Come Together", 259)
+  add-song(l2, "Here Comes the Sun", 185)
+  ()
+
+fun analyze-search-love()
+  with music-manager(empty-lib)
+  with search-service
+  populate-lib()
+  find-songs("Love").map(fn(s) s.title).join(", ")
+
+fun result-search-love()
+  "Love of My Life"
+
+fun analyze-search-come()
+  with music-manager(empty-lib)
+  with search-service
+  populate-lib()
+  find-songs("Come").map(fn(s) s.title).join(", ")
+
+fun result-search-come()
+  "Here Comes the Sun, Come Together"
+
+// ---------------------------------------------------------
+// 5. Client Code
 // ---------------------------------------------------------
 
 fun main()
