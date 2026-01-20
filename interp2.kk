@@ -154,6 +154,78 @@ fun interpret( s : surface ) : <div,exn> string
     eval(core)
   "Result: " ++ res.show
 
+fun analyze-t1()
+  val t1 = SLet( "x", SLit(10), 
+    SPrim("*", [ SVar("x"), SLit(2) ])
+  )
+  run-safe(?a/show=id) { interpret(t1) }
+fun result-t1()
+  "Result: 20"
+
+fun analyze-t2()
+  val t2 = SApp(
+    SLam( ["x", "y"], SPrim("-", [SVar("x"), SVar("y")]) ),
+    [ SLit(10), SLit(4) ]
+  )
+  run-safe(?a/show=id) { interpret(t2) }
+fun result-t2()
+  "Result: 6"
+
+fun analyze-t3()
+  val t3 = SLet("x", SLit(100),
+    SLet("f", SLam(["y"], SPrim("+", [SVar("x"), SVar("y")])),
+      SApp(SVar("f"), [SLit(5)])
+    )
+  )
+  run-safe(?a/show=id) { interpret(t3) }
+fun result-t3()
+  "Result: 105"
+
+fun analyze-t4()
+  val t4 = SPrim("sum", [SLit(1), SLit(2), SLit(3), SLit(4)])
+  run-safe(?a/show=id) { interpret(t4) }
+fun result-t4()
+  "Result: 10"
+
+fun analyze-err1()
+  val err1 = SVar("z")
+  run-safe(?a/show=id) { interpret(err1) }
+fun result-err1()
+  "FAILURE: Runtime Error: Variable 'z' not found"
+
+fun analyze-err2()
+  val err2 = SPrim("+", [
+    SLit(10), 
+    SLam(["x"], SVar("x"))
+  ])
+  run-safe(?a/show=id) { interpret(err2) }
+fun result-err2()
+  "FAILURE: Primitive error: Unknown op '+' or invalid args"
+
+fun analyze-err3()
+  val err3 = SApp(
+    SLam(["x", "y"], SVar("x")),
+    [ SLit(10) ]
+  )
+  run-safe(?a/show=id) { interpret(err3) }
+fun result-err3()
+  "FAILURE: Arity Mismatch: Expected 2 args, got 1"
+
+fun analyze-err4()
+  val err4 = SApp(
+    SLit(5),
+    [ SLit(10) ]
+  )
+  run-safe(?a/show=id) { interpret(err4) }
+fun result-err4()
+  "FAILURE: Type Error: Application on non-function"
+
+fun analyze-err5()
+  val err5 = SPrim("modulo", [SLit(10), SLit(3)])
+  run-safe(?a/show=id) { interpret(err5) }
+fun result-err5()
+  "FAILURE: Primitive error: Unknown op 'modulo' or invalid args"
+
 fun main()
   println("--- Koka Extended Interpreter ---")
 

@@ -88,6 +88,21 @@ fun eval( t : term ) : <env,exn,div> value
             
         _ -> throw("Type Error: App expects a function")
 
+fun analyze-interp()
+  val ex = App(
+    Lam("x", App(
+      Lam("y", Add(Var("x"), Var("y"))),
+      Lit(20)
+    )),
+    Lit(10)
+  )
+  // Initial run with empty environment
+  run-safe 
+    run-env([]) 
+      eval(ex)
+fun result-interp()
+  "Success: 30"
+
 // ---------------------------------------------------------
 // 5. Main
 // ---------------------------------------------------------
