@@ -366,3 +366,35 @@ fun generator( start-ch : chan<int>, limit : int ) : <comm<<console>>,console,di
     yield() 
   println("Generator finished.")
   shutdown()
+
+// ---------------------------------------------------------
+// 4. Analysis entry points
+// ---------------------------------------------------------
+
+pub fun analyze-yield()
+  test-yield()
+  "ok"
+
+pub fun result-yield()
+  "ok"
+
+pub fun analyze-spawn()
+  test-spawn()
+  "ok"
+
+pub fun result-spawn()
+  "ok"
+
+pub fun analyze-send-recv()
+  test-send-recv()
+  "ok"
+
+pub fun result-send-recv()
+  "ok"
+
+pub fun analyze-prime-sieve()
+  test-prime-sieve()
+  "ok"
+
+pub fun result-prime-sieve()
+  "ok"

@@ -91,3 +91,19 @@ fun main()
     trace("Main: Yielding...")
     yield()
     trace("Main: Done")
+
+// ---------------------------------------------------------
+// 5. Analysis entry points
+// ---------------------------------------------------------
+
+pub fun analyze-scheduler()
+  schedule fn()
+    fork fn()
+      yield()
+    fork fn()
+      yield()
+    yield()
+  "ok"
+
+pub fun result-scheduler()
+  "ok"
