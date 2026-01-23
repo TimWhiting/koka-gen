@@ -47,10 +47,10 @@ fun unify( t1 : term, t2 : term, s : subst ) : div maybe<subst>
     (_, Var(i)) -> Just( Cons((i, u), s) )
     
     // If both are pairs, recurse on head and tail
-    (Pair(h1, t1), Pair(h2, t2)) ->
+    (Pair(h1, t1x), Pair(h2, t2x)) ->
       match unify(h1, h2, s)
         Nothing -> Nothing
-        Just(s2) -> unify(t1, t2, s2)
+        Just(s2) -> unify(t1x, t2x, s2)
         
     // Otherwise, mismatch
     _ -> Nothing
